@@ -1,3 +1,4 @@
+
 /*______Import Libraries_______*/
 #include <Arduino.h>
 #include <SPI.h>
@@ -9,6 +10,7 @@
 #include <Adafruit_ADS1X15.h>
 /*______End of Libraries_______*/
 
+
 /*__Select your hardware version__*/
 
 // select one version and deselect the other versions
@@ -17,6 +19,7 @@
 // #define AZ_TOUCH_MOD_BIG_TFT    // AZ-Touch MOD with 2.8 inch TFT
 
 /*____End of hardware selection___*/
+
 
 /*__Pin definitions for the ESP32__*/
 #define TFT_CS   5
@@ -40,6 +43,9 @@
 #endif
 /*_______End of definitions______*/
 
+
+
+
 /*____Calibrate Touchscreen_____*/
 #define MINPRESSURE 10      // minimum required force for touch event
 #define TS_MINX 370
@@ -47,6 +53,7 @@
 #define TS_MAXX 3700
 #define TS_MAXY 3600
 /*______End of Calibration______*/
+
 
 //Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 //XPT2046_Touchscreen touch(TOUCH_CS);
@@ -64,32 +71,31 @@ TwoWire I2CADS = TwoWire(0);
 bool status;
 
 /*___________ Setup of times and tensions________________*/
-String symbol[5][3] = {
+
+String symbol[4][3] = {
   { "Volt act.", "Min. left" },
   { "2,00 h", "3,00 h" },
   { "3,50 h", "4,00 h" },
-  { "67 %", "57 %" },
-  { "res. cap.", "res. cap." },
+  { "12,9 V", "12,8 V" }
 };
 
-unsigned long time1 = 2;
-unsigned long time2 = 3;
-unsigned long time3 = 3.5;
-unsigned long time4 = 4;
+float time1 = 2;
+float time2 = 3;
+float time3 = 3.5;
+float time4 = 4;
 
-double tension_calibration = 0.001073; // must be measured for each individual voltage divider
+float tension1 = 12.9;
+float tension2 = 12.8;
 
-double tension1 = 13; //  12.9 V corresponds to 57 %     13 V corresponds to 67 %
-double tension2 = 12.9; // 12.8 V corresponds to 53 %
-
-double tension_min_limit = 12.7;
-double timelimit = 5;
+float tension_min_limit = 12.7;
+float timelimit = 5;
 
 /*___________ End of setup of times and tensions________________*/
 
 int X, Y;
-double tension_act, tension_limit;
-unsigned long execution_time, minutes_left, time_now, start_time, time_actual, time_last;
+float execution_time;
+double minutes_left, tension_act, tension_limit;
+unsigned long time_now, start_time, time_actual, time_last;
 bool limit_type_tension; // True: tension as limit not time
 bool Touch_pressed = false;
 int case_number;
@@ -101,7 +107,7 @@ int resolution = 8;
 
 void setup() {
   execution_time = timelimit;
-  execution_time = hours_to_millis(execution_time);
+  hours_to_millis();
 
   pinMode(AES_Port, OUTPUT);
   digitalWrite(AES_Port, LOW);
@@ -114,6 +120,7 @@ void setup() {
   time_now = millis();
   start_time = millis();
   limit_type_tension = true;
+
 
   Serial.begin(115200); //Use serial monitor for debugging
 
@@ -152,6 +159,7 @@ void setup() {
   ledcAttachPin(21, buzzChannel);
 }
 
+
 void loop() {
   CheckState();
   // check touch screen for new events
@@ -176,13 +184,9 @@ void loop() {
           tft.fillRect  (0, 241, 120, 79, ILI9341_RED);
           tft.setTextSize(3);
           tft.setTextColor(ILI9341_WHITE);
-          tft.setCursor(23, 275);
+          tft.setCursor(8, 270);
           tft.println(symbol[3][0]);
           Serial.println(symbol[3][0]);
-          tft.setCursor (8, 243);
-          tft.setTextSize(2);
-          tft.setTextColor(ILI9341_WHITE);
-          tft.println(symbol[4][0]);
 
           ledcWriteTone(buzzChannel, 2000);
           delay(500);
@@ -196,13 +200,9 @@ void loop() {
           tft.fillRect  (121, 241, 119, 79, ILI9341_RED);
           tft.setTextSize(3);
           tft.setTextColor(ILI9341_WHITE);
-          tft.setCursor(143, 275);
+          tft.setCursor(128, 270);
           tft.println(symbol[3][1]);
           Serial.println(symbol[3][1]);
-          tft.setTextSize(2);
-          tft.setTextColor(ILI9341_WHITE);
-          tft.setCursor (128, 243);
-          tft.println(symbol[4][1]);
 
           ledcWriteTone(buzzChannel, 2000);
           delay(500);
@@ -249,6 +249,7 @@ void loop() {
           delay(50);
 
           break;
+
         case 3:
           draw_BoxNButtons();
           tft.fillRect  (0, 161, 120, 79, ILI9341_RED);
@@ -264,6 +265,7 @@ void loop() {
           delay(50);
 
           break;
+
         case 4:
           //Draw Voltage Input Result
           draw_BoxNButtons();
@@ -326,9 +328,10 @@ void DetectButtons()
       limit_type_tension = true;
       tension_limit = tension1;
       execution_time = timelimit;
-      execution_time = hours_to_millis(execution_time);
+      hours_to_millis();
       start_time = millis();
       case_number = 1;
+
 
     }
 
@@ -337,9 +340,10 @@ void DetectButtons()
 
       limit_type_tension = false;
       execution_time = time3;
-      execution_time = hours_to_millis(execution_time);
+      hours_to_millis();
       start_time = millis();
       case_number = 3;
+
 
     }
 
@@ -348,11 +352,13 @@ void DetectButtons()
 
       limit_type_tension = false;
       execution_time = time1;
-      execution_time = hours_to_millis(execution_time);
+      hours_to_millis();
       start_time = millis();
       case_number = 1;
 
+
     }
+
   }
 
   if (X < 120) //Detecting Buttons on Column 2
@@ -363,9 +369,10 @@ void DetectButtons()
       limit_type_tension = true;
       tension_limit = tension2;
       execution_time = timelimit;
-      execution_time = hours_to_millis(execution_time);
+      hours_to_millis();
       start_time = millis();
       case_number = 2;
+
 
     }
 
@@ -374,9 +381,10 @@ void DetectButtons()
 
       limit_type_tension = false;
       execution_time = time4;
-      execution_time = hours_to_millis(execution_time);
+      hours_to_millis();
       start_time = millis();
       case_number = 4;
+
 
     }
 
@@ -385,13 +393,15 @@ void DetectButtons()
 
       limit_type_tension = false;
       execution_time = time2;
-      execution_time = hours_to_millis(execution_time);
+      hours_to_millis();
       start_time = millis();
       case_number = 2;
+
 
     }
   }
 }
+
 
 /********************************************************************//**
    @brief     draws the keypad
@@ -432,16 +442,7 @@ void draw_BoxNButtons()
   tft.setCursor (128, 3); //Time left
   tft.println(symbol[0][1]);
 
-  tft.setCursor (8, 243);
-  tft.setTextSize(2);
-  tft.setTextColor(ILI9341_BLACK);
-  tft.println(symbol[4][0]);
-  tft.setTextSize(2);
-  tft.setTextColor(ILI9341_BLACK);
-  tft.setCursor (128, 243);
-  tft.println(symbol[4][1]);
-
-  for (int j = 1; j < 3; j++) {
+  for (int j = 1; j < 4; j++) {
     for (int i = 0; i < 2; i++) {
       tft.setCursor(8 + (120 * i), 30 + (80 * j));
       //if ((j==3) && (i==2)) tft.setCursor(24 + (80*i), 100 + (80*j));
@@ -450,19 +451,8 @@ void draw_BoxNButtons()
       tft.println(symbol[j][i]);
     }
   }
-
-  // print last line on screen (different offset)
-  tft.setCursor(23, 275);
-  tft.setTextSize(3);
-  tft.setTextColor(ILI9341_BLACK);
-  tft.println(symbol[3][0]);
-
-  tft.setCursor(143, 275);
-  tft.setTextSize(3);
-  tft.setTextColor(ILI9341_BLACK);
-  tft.println(symbol[3][1]);
-
 }
+
 
 /********************************************************************//**
    @brief     Write actual parameters
@@ -471,6 +461,7 @@ void draw_BoxNButtons()
  *********************************************************************/
 void CheckState() {
 
+
   Serial.print("Execution time:"); Serial.print(execution_time); Serial.print(" Minutes left:"); Serial.println(minutes_left);
   read_voltage();
 
@@ -478,9 +469,9 @@ void CheckState() {
   time_actual = millis();
   time_now = millis();
 
-  minutes_now  = millis_to_minutes(time_now);
-  minutes_execution  = millis_to_minutes(execution_time);
-  minutes_start = millis_to_minutes(start_time);
+  minutes_now  = time_now / 1000 / 60;
+  minutes_execution  = execution_time / 1000 / 60;
+  minutes_start = start_time / 1000 / 60;
   minutes_left = minutes_execution - (minutes_now - minutes_start);
 
   if (tension_act < tension_min_limit) {                          // Absolut no power left > Shut off
@@ -516,14 +507,14 @@ void CheckState() {
     tft.setTextSize(3);
     tft.setTextColor(ILI9341_BLACK);
     tft.setCursor(20, 35);
-    tft.println(tension_act); // print actual Voltage on screen
+    tft.println(tension_act);
 
     // Print time left
     tft.fillRect  (121, 34, 119, 40, ILI9341_GREEN);
     tft.setTextSize(3);
     tft.setTextColor(ILI9341_BLACK);
     tft.setCursor(160, 35);// (160, 35)
-    tft.println(minutes_left);  // print minutes to shutdown on screen
+    tft.println(minutes_left, 0);
 
     time_last = millis();
   }
@@ -541,7 +532,7 @@ void read_voltage() {
   for (int i = 1; i <= 5; i++) {
     adc0 = ads1115.readADC_SingleEnded(0);
 
-    results = results + (adc0 * tension_calibration);
+    results = results + (adc0 * 0.001073);
   }
   results = results / 5;
   tension_act = results;
@@ -550,25 +541,13 @@ void read_voltage() {
 
 /********************************************************************//**
    @brief     hours in milliseconds
-   @param[in] hours
-   @return    milliseconds
+   @param[in] None
+   @return    None
  *********************************************************************/
-unsigned long hours_to_millis(unsigned long x) {
-  unsigned long result;
-  result = x * 60 * 60 * 1000;
-  return result;
+void hours_to_millis() {
+  execution_time = execution_time * 60 * 60 * 1000;
 }
 
-/********************************************************************//**
-   @brief     millis in minutes
-   @param[in] millis
-   @return    minutes
- *********************************************************************/
-unsigned long millis_to_minutes(unsigned long x) {
-  unsigned long result;
-  result = x / 1000 / 60;
-  return result;
-}
 
 /********************************************************************//**
    @brief     shows the intro screen in setup procedure
