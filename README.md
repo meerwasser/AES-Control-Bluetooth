@@ -7,7 +7,7 @@ Das Gerät verfügt über 3 Anschlüsse:
 1. Bordspannung
 2. Masse
 3. AES-Steuerungsausgang
-Nach dem Einschalten des Geräts über den Taster kann auf dem Bildschirm gewählt werden, ob die Abschaltung des AES-Signals nach einer bestimmten Zeit, oder bei Erreichen einer bestimmten Mindestspannung erfolgen soll.
+Nach dem Einschalten des Geräts über den Taster kann auf dem Bildschirm gewählt werden, ob die Abschaltung des AES-Signals nach einer bestimmten Zeit, oder bei Erreichen einer bestimmten Mindestspannung (Batterierestladung) erfolgen soll.
 Bei Erreichen der Abschaltbedingung wird das AES-Signal abgeschaltet und das Gerät wird durch das Trennen einer Selbsthalteschaltung ausgeschaltet, so dass es keinerlei Stromaufnahme mehr aufweist.
 Die Gerätesoftware verfügt über Schutzabschaltungen nach intern festgelegten Maximalzeiten und Minimalspannungen.
 Bauteile:
