@@ -1,16 +1,21 @@
-# AES-Steuerung
-AES-Signal für Camping Kühlschrank in Abhängigkeit von Spannung und Zeit
+# AES-Control
 
-Beschreibung
-Das Gerät dient zum verlängerten Betrieb eines AES-gesteuerten Kühlschranks über das 12V-Bordnetz. Es gibt in Abhängigkeit von wählbaren Zielgrößen ein AES-Signal am entsprechenden Ausgang ab.
-Das Gerät verfügt über 3 Anschlüsse: 
-1. Bordspannung
-2. Masse
-3. AES-Steuerungsausgang
-Nach dem Einschalten des Geräts über den Taster kann auf dem Bildschirm gewählt werden, ob die Abschaltung des AES-Signals nach einer bestimmten Zeit, oder bei Erreichen einer bestimmten Mindestspannung (Batterierestladung) erfolgen soll.
-Bei Erreichen der Abschaltbedingung wird das AES-Signal abgeschaltet und das Gerät wird durch das Trennen einer Selbsthalteschaltung ausgeschaltet, so dass es keinerlei Stromaufnahme mehr aufweist.
-Die Gerätesoftware verfügt über Schutzabschaltungen nach intern festgelegten Maximalzeiten und Minimalspannungen.
-Bauteile:
+AES-signal-generator for camping-refrigerators controlled by voltage and running time
+
+Description
+The device is intended for extended operation of an AES-controlled refrigerator via the 12V on-board network. Depending on the selected target values, it sends an AES signal to the corresponding output.
+
+The device has 3 connections:
+1. Board voltage
+2. Mass
+3. AES control output 
+
+The push-button is used to power on the device. No it is possible to choose on the screen whether the AES signal should be switched off after a certain time or when a certain minimum voltage is reached.
+When the switch-off condition is reached, the AES signal is cut off and the device is switched off by disconnecting a self-holding circuit so that it no longer consumes any power 
+
+The device software has protective shutdowns according to internally defined maximum times and minimum voltages.
+
+Components: 
 
 ESP32 NodeMCU Module WLAN WiFi
 Development Board mit CP2102
@@ -29,10 +34,11 @@ https://www.berrybase.de/neu/ads1115-4-kanal-16-bit-ad-wandler-breakout-board#
 
 DIL-Miniaturrelais HJR-4102 12V, 1 Wechsler 5A
 https://www.reichelt.de/de/de/index.html?ACTION=446&LA=446&nbc=1&q=hjr-4102-l%2012v%20
+
 DIL-Miniaturrelais HJR-4102 5V, 1 Wechsler 5A
 https://www.reichelt.de/de/de/index.html?ACTION=446&LA=446&nbc=1&q=hjr-4102-l%205v
 
-Widerstände
+Widerstände:
 4,7 kΩ
 22 kΩ
 
