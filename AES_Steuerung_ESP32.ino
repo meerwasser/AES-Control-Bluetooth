@@ -63,7 +63,7 @@ Adafruit_ADS1115 ads1115;
 TwoWire I2CADS = TwoWire(0);
 bool status;
 
-/*___________ Setup of times and tensions________________*/
+/*___________ Setup of times and tensions/capacities________________*/
 String symbol[5][3] = {
   { "Volt act.", "Min. left" },
   { "2,00 h", "3,00 h" },
@@ -79,8 +79,16 @@ unsigned long time4 = 4;
 
 double tension_calibration = 0.001073; // must be measured for each individual voltage divider
 
-double tension1 = 13; //  12.9 V corresponds to 57 %     13 V corresponds to 67 %
-double tension2 = 12.9; // 12.8 V corresponds to 53 %
+/*_____ Capacities of the used battery in dependence of the tension _________________________
+
+13.0 V corresponds to 67 %
+12.9 V corresponds to 57 %
+12.8 V corresponds to 53 %
+
+_______ End of Capacities of the used battery in dependence of the tension ________________*/
+
+double tension1 = 13; 
+double tension2 = 12.9;
 
 double tension_min_limit = 12.7;
 double timelimit = 5;
@@ -90,7 +98,7 @@ double timelimit = 5;
 int X, Y;
 double tension_act, tension_limit;
 unsigned long execution_time, minutes_left, time_now, start_time, time_actual, time_last;
-bool limit_type_tension; // True: tension as limit not time
+bool limit_type_tension; // True: tension as limit, not time
 bool Touch_pressed = false;
 int case_number;
 TS_Point p;
@@ -172,6 +180,7 @@ void loop() {
 
       switch (case_number) {
         case 1:
+        //Draw Voltage Input Result
           draw_BoxNButtons();
           tft.fillRect  (0, 241, 120, 79, ILI9341_RED);
           tft.setTextSize(3);
@@ -183,7 +192,6 @@ void loop() {
           tft.setTextSize(2);
           tft.setTextColor(ILI9341_WHITE);
           tft.println(symbol[4][0]);
-
           ledcWriteTone(buzzChannel, 2000);
           delay(500);
           ledcWriteTone(buzzChannel, 0);
@@ -203,7 +211,6 @@ void loop() {
           tft.setTextColor(ILI9341_WHITE);
           tft.setCursor (128, 243);
           tft.println(symbol[4][1]);
-
           ledcWriteTone(buzzChannel, 2000);
           delay(500);
           ledcWriteTone(buzzChannel, 0);
@@ -226,15 +233,13 @@ void loop() {
           tft.setCursor(8, 110);
           tft.println(symbol[1][0]);
           Serial.println(symbol[1][0]);
-
           ledcWriteTone(buzzChannel, 4000);
           delay(500);
           ledcWriteTone(buzzChannel, 0);
           delay(50);
-
           break;
+
         case 2:
-          //Draw Voltage Input Result
           draw_BoxNButtons();
           tft.fillRect  (121, 81, 119, 79, ILI9341_RED);
           tft.setTextSize(3);
@@ -242,13 +247,12 @@ void loop() {
           tft.setCursor(128, 110);
           tft.println(symbol[1][1]);
           Serial.println(symbol[1][1]);
-
           ledcWriteTone(buzzChannel, 4000);
           delay(500);
           ledcWriteTone(buzzChannel, 0);
           delay(50);
-
           break;
+
         case 3:
           draw_BoxNButtons();
           tft.fillRect  (0, 161, 120, 79, ILI9341_RED);
@@ -257,15 +261,13 @@ void loop() {
           tft.setCursor(8, 190);
           tft.println(symbol[2][0]);
           Serial.println(symbol[2][0]);
-
           ledcWriteTone(buzzChannel, 4000);
           delay(500);
           ledcWriteTone(buzzChannel, 0);
           delay(50);
-
           break;
+
         case 4:
-          //Draw Voltage Input Result
           draw_BoxNButtons();
           tft.fillRect  (121, 161, 119, 79, ILI9341_RED);
           tft.setTextSize(3);
@@ -273,13 +275,12 @@ void loop() {
           tft.setCursor(128, 190);
           tft.println(symbol[2][1]);
           Serial.println(symbol[2][1]);
-
           ledcWriteTone(buzzChannel, 4000);
           delay(500);
           ledcWriteTone(buzzChannel, 0);
           delay(50);
-
           break;
+
         default:
           // if nothing else matches, do the default
           // default is optional
@@ -318,9 +319,9 @@ bool Touch_Event() {
  *********************************************************************/
 void DetectButtons()
 {
-  if (X > 120) //Detecting Buttons on Column 1
+  if (X > 120) 
   {
-    if (Y > 240) //If cancel Button is pressed
+    if (Y > 240) /
     { Serial.println ("Button 13 V");
 
       limit_type_tension = true;
@@ -332,7 +333,7 @@ void DetectButtons()
 
     }
 
-    if (Y > 160 && Y < 240) //If Button 1 is pressed
+    if (Y > 160 && Y < 240)
     { Serial.println ("Button 3,5 h");
 
       limit_type_tension = false;
@@ -343,7 +344,7 @@ void DetectButtons()
 
     }
 
-    if (Y > 80 && Y < 160) //If Button 4 is pressed
+    if (Y > 80 && Y < 160)
     { Serial.println ("Button 2 h");
 
       limit_type_tension = false;
@@ -355,10 +356,10 @@ void DetectButtons()
     }
   }
 
-  if (X < 120) //Detecting Buttons on Column 2
+  if (X < 120)
   {
     if (Y > 240)
-    { Serial.println ("Button 12,9 V"); //Button 0 is Pressed
+    { Serial.println ("Button 12,9 V");
 
       limit_type_tension = true;
       tension_limit = tension2;
@@ -444,7 +445,6 @@ void draw_BoxNButtons()
   for (int j = 1; j < 3; j++) {
     for (int i = 0; i < 2; i++) {
       tft.setCursor(8 + (120 * i), 30 + (80 * j));
-      //if ((j==3) && (i==2)) tft.setCursor(24 + (80*i), 100 + (80*j));
       tft.setTextSize(3);
       tft.setTextColor(ILI9341_BLACK);
       tft.println(symbol[j][i]);
@@ -483,7 +483,7 @@ void CheckState() {
   minutes_start = millis_to_minutes(start_time);
   minutes_left = minutes_execution - (minutes_now - minutes_start);
 
-  if (tension_act < tension_min_limit) {                          // Absolut no power left > Shut off
+  if (tension_act < tension_min_limit) {             // Absolut no power left > Shut off
     digitalWrite(AES_Port, LOW);
     digitalWrite(Kill_Port, HIGH);
   }
@@ -503,7 +503,7 @@ void CheckState() {
 
   }
 
-  if (tension_act < tension_limit) {                            // No power left > Shut off
+  if (tension_act < tension_limit) {                   // No power left > Shut off
     digitalWrite(AES_Port, LOW);
 
     digitalWrite(Kill_Port, HIGH);
@@ -522,7 +522,7 @@ void CheckState() {
     tft.fillRect  (121, 34, 119, 40, ILI9341_GREEN);
     tft.setTextSize(3);
     tft.setTextColor(ILI9341_BLACK);
-    tft.setCursor(160, 35);// (160, 35)
+    tft.setCursor(160, 35);
     tft.println(minutes_left);  // print minutes to shutdown on screen
 
     time_last = millis();
@@ -577,7 +577,6 @@ unsigned long millis_to_minutes(unsigned long x) {
  *********************************************************************/
 void IntroScreen()
 {
-  //Draw the Result Box
   tft.fillRect(0, 0, 240, 320, ILI9341_WHITE);
   tft.setTextSize(0);
   tft.setTextColor(ILI9341_BLACK);
