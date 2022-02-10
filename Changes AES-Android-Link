@@ -1,0 +1,16 @@
+Änderungen AES-Android-Link
+
+Bluetooth-Schnittstelle AES-Android
+
+Von AES in Richtung Android:
+
+1. aktuelle Spannung
+2. Grenzspannung
+3. Verbleibende Minuten
+4. Zustand AES-Ausgang
+
+Von Android in Richtung AES:
+
+1. Grenzspannung
+2. Verbleibende Minuten
+3. Zustand AES-Steuerung
