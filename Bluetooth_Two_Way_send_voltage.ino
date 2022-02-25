@@ -30,6 +30,7 @@ String AES = "0";
 String make_string;
 char sent_char[20];
 String buff;
+String state = "";
 
 // Bluetooth Serial object
 BluetoothSerial SerialBT;
@@ -56,10 +57,10 @@ void read_status () {
   make_string = make_string + buff + "/";
   buff = String(tension_limit, 1);
   make_string = make_string + buff + "/";
- buff = String(time_left, 0);
+  buff = String(time_left, 0);
   make_string = make_string + buff + "/" + AES + "/";;
- 
-  make_string.toCharArray(sent_char, (make_string.length())+1);
+
+  make_string.toCharArray(sent_char, (make_string.length()) + 1);
 }
 
 void send_BT() {
@@ -68,17 +69,25 @@ void send_BT() {
     simulate();
     read_status();
     SerialBT.println(sent_char);
-    
+
     delay(500);
     Serial.print("Volt: "); Serial.println(sent_char);
     last_sent = millis();
   }
 }
 
+void receive_BT() {
+  if (SerialBT.available()) {
+    state = SerialBT.read();
+    Serial.print("received: "); Serial.println(state);
+    actual_minutes = state.toInt();
+  }
+}
 
 
 void loop() {
   now = millis();                       // Store current time
+  receive_BT();
   send_BT();
 
 
