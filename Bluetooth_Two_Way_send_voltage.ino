@@ -12,7 +12,7 @@
 // this header is needed for Bluetooth Serial -> works ONLY on ESP32
 #include "BluetoothSerial.h"
 
-#define sent_intervall 500 //0,5 sec time between sending
+#define sent_intervall 2000 //2 sec time between sending
 
 
 // Parameters for Bluetooth interface and timing
@@ -77,51 +77,24 @@ void send_BT() {
 }
 
 void receive_BT() {
+
   if (SerialBT.available()) {
-    state = SerialBT.read();
-    Serial.print("received: "); Serial.println(state);
-    actual_minutes = state.toInt();
+    state = "";
+      while (SerialBT.available()) {
+        char incomingChar = SerialBT.read();
+        state += String(incomingChar);
+      }
+
+     if (state.length() < 9) {
+
+        Serial.print("received: "); Serial.println(state);
+        actual_minutes = state.toInt();
+        state = "";
+    }
   }
 }
-
-
-void loop() {
-  now = millis();                       // Store current time
-  receive_BT();
-  send_BT();
-
-
-  /*
-
-    // -------------------- Receive Bluetooth signal ----------------------
-    if (SerialBT.available())
-    {
-      incoming = SerialBT.read(); //Read what we receive and store in "incoming"
-
-      // separate button ID from button value -> button ID is 10, 20, 30, etc, value is 1 or 0
-      int button = floor(incoming / 10);
-      int value = incoming % 10;
-
-      switch (button) {
-        case 1:
-          Serial.print("Button 1:"); Serial.println(value);
-          digitalWrite(led_pin_1, value);
-          if (value == 1)                                           // check if the button is switched on
-            time_button1 = now;                                     // if button is switched on, write the current time to the timestamp
-          break;
-        case 2:
-          Serial.print("Button 2:"); Serial.println(value);
-          digitalWrite(led_pin_2, value);
-          if (value == 1)
-            time_button2 = now;
-          break;
-        case 3:
-          Serial.print("Button 3:"); Serial.println(value);
-          digitalWrite(led_pin_3, value);
-          if (value == 1)
-            time_button3 = now;
-          break;
-      }
-    }
-  */
-}
+  void loop() {
+    now = millis();                       // Store current time
+    receive_BT();
+    send_BT();
+  }
