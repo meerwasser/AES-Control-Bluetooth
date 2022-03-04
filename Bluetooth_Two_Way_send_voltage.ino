@@ -77,24 +77,41 @@ void send_BT() {
 }
 
 void receive_BT() {
+  char label = ' ';
 
   if (SerialBT.available()) {
     state = "";
-      while (SerialBT.available()) {
-        char incomingChar = SerialBT.read();
-        state += String(incomingChar);
+    while (SerialBT.available()) {
+      char incomingChar = SerialBT.read();
+      state += String(incomingChar);
+    }
+
+    if (state.length() < 9) {
+      Serial.print("received: "); Serial.println(state);
+      label = state.charAt(1);
+      switch (label) {
+        case 'C':            // Cutoff Voltage
+          state.remove(1, 1);
+          tension_limit = state.toDouble();
+          break;
+        case 'M':                        // Minutes left
+          state.remove(1, 1);
+          actual_minutes = state.toDouble();
+          break;
+        case 'A':                        // AES state
+          state.remove(1, 1);
+          AES = state;
+          break;
+        default:
+          // statements
+          break;
       }
-
-     if (state.length() < 9) {
-
-        Serial.print("received: "); Serial.println(state);
-        actual_minutes = state.toInt();
-        state = "";
+      state = "";
     }
   }
 }
-  void loop() {
-    now = millis();                       // Store current time
-    receive_BT();
-    send_BT();
-  }
+void loop() {
+  now = millis();                       // Store current time
+  receive_BT();
+  send_BT();
+}
