@@ -88,18 +88,22 @@ void receive_BT() {
 
     if (state.length() < 9) {
       Serial.print("received: "); Serial.println(state);
-      label = state.charAt(1);
+      label = state.charAt(0);
+       Serial.print("label: ");Serial.println(label);
       switch (label) {
         case 'C':            // Cutoff Voltage
-          state.remove(1, 1);
+          state.remove(0, 1);
+          Serial.print("Tension: ");Serial.println(state);
           tension_limit = state.toDouble();
           break;
         case 'M':                        // Minutes left
-          state.remove(1, 1);
+          state.remove(0, 1);
+          Serial.print("Minutes: ");Serial.println(state);
           actual_minutes = state.toDouble();
           break;
         case 'A':                        // AES state
-          state.remove(1, 1);
+          state.remove(0, 1);
+          Serial.print("AES: ");Serial.println(state);
           AES = state;
           break;
         default:
@@ -107,6 +111,7 @@ void receive_BT() {
           break;
       }
       state = "";
+       Serial.print("received: Tension-limit: "); Serial.print(tension_limit);Serial.print(", actual_minutes: ");Serial.print(actual_minutes);Serial.print(", AES: ");Serial.println(AES);Serial.println();
     }
   }
 }
