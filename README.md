@@ -44,3 +44,25 @@ Widerstände:
 
 Taster
 
+Changes in branch Android-Link
+
+Minor Bugfixes:
+tension-limits
+
+Connection to Android-Device with variables to Android:
+
+1. actual tension
+2. tension limit
+3. minutes left
+4. state AES-Port
+
+Android to ESP:
+
+1. tension limit
+2. minutes left
+3. state AES-Port
+
+Bluetooth-Code based on:
+http://www.martyncurrey.com/android-mit-app-inventor-auto-connect-to-bluetooth/
+and
+https://github.com/mo-thunderz/Esp32BluetoothApp
