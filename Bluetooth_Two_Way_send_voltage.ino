@@ -76,6 +76,11 @@ void set_LED_colour(char LED_Colour) {
       digitalWrite(red_LED, LOW);
       digitalWrite(blue_LED, HIGH);
       break;
+    case 'o':
+      digitalWrite(green_LED, LOW);
+      digitalWrite(red_LED, LOW);
+      digitalWrite(blue_LED, LOW);
+      break;
     default:
       // statements
       break;
