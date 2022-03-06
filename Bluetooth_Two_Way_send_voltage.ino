@@ -15,6 +15,11 @@
 #define sent_intervall 2000 //2 sec time between sending
 
 
+#define green_LED  18
+#define red_LED  33
+#define blue_LED  23
+
+
 // Parameters for Bluetooth interface and timing
 int incoming;                           // variable to store byte received from phone
 unsigned long now;                      // variable to store current "time" using millis() function
@@ -36,9 +41,14 @@ String state = "";
 BluetoothSerial SerialBT;
 
 void setup() {
+
+  set_LED_colour('g');
   last_sent = millis();
   Serial.begin(115200);
   SerialBT.begin("ESP32_Control");        // Name of your Bluetooth interface -> will show up on your phone
+  pinMode(green_LED, OUTPUT);    // sets the LED pins as output
+  pinMode(red_LED, OUTPUT);    // sets the LED pins as output
+  pinMode(blue_LED, OUTPUT);    // sets the LED pins as outputgreen_LED
 
 }
 
@@ -47,7 +57,29 @@ void simulate() {
   voltage = 15 -  (factor / 10);
   actual_minutes = now / 60000;
   time_left = minutes_runtime - actual_minutes;
+}
 
+void set_LED_colour(char LED_Colour) {
+  switch (LED_Colour) {
+    case 'g':
+      digitalWrite(green_LED, HIGH);
+      digitalWrite(red_LED, LOW);
+      digitalWrite(blue_LED, LOW);
+      break;
+    case 'r':
+      digitalWrite(green_LED, LOW);
+      digitalWrite(red_LED, HIGH);
+      digitalWrite(blue_LED, LOW);
+      break;
+    case 'b':
+      digitalWrite(green_LED, LOW);
+      digitalWrite(red_LED, LOW);
+      digitalWrite(blue_LED, HIGH);
+      break;
+    default:
+      // statements
+      break;
+  }
 }
 
 void read_status () {
@@ -65,14 +97,16 @@ void read_status () {
 
 void send_BT() {
   now = millis();                       // Store current time
+
   if (now > (last_sent + sent_intervall)) {
     simulate();
     read_status();
     SerialBT.println(sent_char);
-
+    set_LED_colour ('b');
     delay(500);
     Serial.print("Volt: "); Serial.println(sent_char);
     last_sent = millis();
+
   }
 }
 
@@ -89,21 +123,21 @@ void receive_BT() {
     if (state.length() < 9) {
       Serial.print("received: "); Serial.println(state);
       label = state.charAt(0);
-       Serial.print("label: ");Serial.println(label);
+      Serial.print("label: "); Serial.println(label);
       switch (label) {
         case 'C':            // Cutoff Voltage
           state.remove(0, 1);
-          Serial.print("Tension: ");Serial.println(state);
+          Serial.print("Tension: "); Serial.println(state);
           tension_limit = state.toDouble();
           break;
         case 'M':                        // Minutes left
           state.remove(0, 1);
-          Serial.print("Minutes: ");Serial.println(state);
+          Serial.print("Minutes: "); Serial.println(state);
           actual_minutes = state.toDouble();
           break;
         case 'A':                        // AES state
           state.remove(0, 1);
-          Serial.print("AES: ");Serial.println(state);
+          Serial.print("AES: "); Serial.println(state);
           AES = state;
           break;
         default:
@@ -111,12 +145,13 @@ void receive_BT() {
           break;
       }
       state = "";
-       Serial.print("received: Tension-limit: "); Serial.print(tension_limit);Serial.print(", actual_minutes: ");Serial.print(actual_minutes);Serial.print(", AES: ");Serial.println(AES);Serial.println();
+      Serial.print("received: Tension-limit: "); Serial.print(tension_limit); Serial.print(", actual_minutes: "); Serial.print(actual_minutes); Serial.print(", AES: "); Serial.println(AES); Serial.println();
     }
   }
 }
 void loop() {
   now = millis();                       // Store current time
+  set_LED_colour('g');
   receive_BT();
   send_BT();
 }
