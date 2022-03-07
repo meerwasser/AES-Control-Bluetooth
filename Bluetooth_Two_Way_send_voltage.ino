@@ -15,17 +15,27 @@
 #define sent_intervall 2000 //2 sec time between sending
 
 
+#define AES_Port 35
+#define Kill_Port 33
+
 #define green_LED  18
 #define red_LED  33
 #define blue_LED  23
-
 
 // Parameters for Bluetooth interface and timing
 int incoming;                           // variable to store byte received from phone
 unsigned long now;                      // variable to store current "time" using millis() function
 unsigned long last_sent;                // variable to store point in time of sending
 
+/*
+  float execution_time;
+  double minutes_left, tension_act, tension_limit;
+  unsigned long time_now, time_actual, time_last;
+*/
 
+double tension_lost = 0; //only for simulation
+
+double start_time;
 double voltage;                         //actual tension
 double tension_limit = 12.9;                   //tension limit for cut-off
 double minutes_runtime = 120;                    //actual minutes set
@@ -50,14 +60,53 @@ void setup() {
   pinMode(red_LED, OUTPUT);    // sets the LED pins as output
   pinMode(blue_LED, OUTPUT);    // sets the LED pins as outputgreen_LED
 
+  pinMode(AES_Port, OUTPUT);
+  pinMode(Kill_Port, OUTPUT);
+  digitalWrite(AES_Port, LOW);
+  digitalWrite(Kill_Port, LOW);
 }
 
-void simulate() {
-  double factor = random(0, 60); // create random number
-  voltage = 15 -  (factor / 10);
+void time_to_go() {
   actual_minutes = now / 60000;
-  time_left = minutes_runtime - actual_minutes;
+  time_left = minutes_runtime - (actual_minutes - start_time);
 }
+
+
+void check_state() {
+
+  /* ##############################
+      tension
+    ###############################*/
+  // simulate Voltage
+  double factor = random(0, 100); // create random number
+  tension_lost = tension_lost + (factor / 500);
+  voltage = 15 -  tension_lost;
+  // end simulate
+
+  if (voltage <= tension_limit) {
+    AES = '0';
+    digitalWrite(AES_Port, LOW);
+    digitalWrite(Kill_Port, HIGH);
+  }
+
+  /* ##############################
+      time
+    ###############################*/
+  time_to_go();
+  if (time_left <= 0) {
+    AES = '0';
+    digitalWrite(AES_Port, LOW);
+    digitalWrite(Kill_Port, HIGH);
+  }
+}
+
+/*###########################################
+   Set LED-status
+   g: green
+   r: red
+   b: blue
+   o: off
+  ############################################*/
 
 void set_LED_colour(char LED_Colour) {
   switch (LED_Colour) {
@@ -104,7 +153,7 @@ void send_BT() {
   now = millis();                       // Store current time
 
   if (now > (last_sent + sent_intervall)) {
-    simulate();
+    check_state();
     read_status();
     SerialBT.println(sent_char);
     set_LED_colour ('b');
@@ -134,11 +183,17 @@ void receive_BT() {
           state.remove(0, 1);
           Serial.print("Tension: "); Serial.println(state);
           tension_limit = state.toDouble();
+          start_time = now / 60000;
+          AES = '1';
+          digitalWrite(AES_Port, HIGH);
           break;
         case 'M':                        // Minutes left
           state.remove(0, 1);
           Serial.print("Minutes: "); Serial.println(state);
-          actual_minutes = state.toDouble();
+          minutes_runtime = state.toDouble();
+          start_time = now / 60000;
+          AES = '1';
+          digitalWrite(AES_Port, HIGH);
           break;
         case 'A':                        // AES state
           state.remove(0, 1);
@@ -150,7 +205,7 @@ void receive_BT() {
           break;
       }
       state = "";
-      Serial.print("received: Tension-limit: "); Serial.print(tension_limit); Serial.print(", actual_minutes: "); Serial.print(actual_minutes); Serial.print(", AES: "); Serial.println(AES); Serial.println();
+      Serial.print("received: Tension-limit: "); Serial.print(tension_limit); Serial.print(", minutes_runtime: "); Serial.print(minutes_runtime); Serial.print(", AES: "); Serial.println(AES); Serial.println();
     }
   }
 }
