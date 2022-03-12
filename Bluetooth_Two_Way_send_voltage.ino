@@ -9,18 +9,28 @@
 //
 // --------------------------------------------------
 
+
+/*______Import Libraries_______*/
 // this header is needed for Bluetooth Serial -> works ONLY on ESP32
 #include "BluetoothSerial.h"
+#include <Wire.h>
+#include <Adafruit_ADS1X15.h>
+/*______End of Libraries_______*/
+
 
 #define sent_intervall 2000 //2 sec time between sending
 
-
-#define AES_Port 35
+#define AES_Port 35 
 #define Kill_Port 33
 
 #define green_LED  18
 #define red_LED  33
 #define blue_LED  23
+
+/*____definition 1Wire and A/D-Converter_____*/
+Adafruit_ADS1115 ads1115;
+bool status;
+/*____End of definition 1Wire and A/D-Converter_____*/
 
 // Parameters for Bluetooth interface and timing
 int incoming;                           // variable to store byte received from phone
@@ -55,6 +65,30 @@ void setup() {
   set_LED_colour('g');
   last_sent = millis();
   Serial.begin(115200);
+  // Setup A/D-Converter
+ 
+  Serial.println(F("ADS1115 test"));
+
+  Serial.println("Getting Single-Ended reading from AIN0 (P)");
+
+  // default settings
+  // (you can also pass in a Wire library object like &Wire2)
+  status = ads1115.begin();
+  Serial.println("ADC Range: +/- 4.096V  1 bit = 2mV");
+  // ads115.setGain(GAIN_TWOTHIRDS);  // 2/3x gain +/- 6.144V  1 bit = 3mV (default)
+
+  ads1115.setGain(GAIN_ONE);     // 1x gain   +/- 4.096V  1 bit = 2mV
+  // ads1115.setGain(GAIN_TWO);     // 2x gain   +/- 2.048V  1 bit = 1mV
+  // ads1115.setGain(GAIN_FOUR);    // 4x gain   +/- 1.024V  1 bit = 0.5mV
+  // ads1115.setGain(GAIN_EIGHT);   // 8x gain   +/- 0.512V  1 bit = 0.25mV
+  // ads1115.setGain(GAIN_SIXTEEN); // 16x gain  +/- 0.256V  1 bit = 0.125mV
+
+  if (!status) {
+    Serial.println("Could not find a valid ads1115 sensor, check wiring!");
+    while (1);
+  }
+  read_voltage();
+
   SerialBT.begin("ESP32_Control");        // Name of your Bluetooth interface -> will show up on your phone
   pinMode(green_LED, OUTPUT);    // sets the LED pins as output
   pinMode(red_LED, OUTPUT);    // sets the LED pins as output
@@ -72,17 +106,39 @@ void time_to_go() {
 }
 
 
+/********************************************************************//**
+   @brief     read_voltage
+   @param[in] None
+   @return    None
+ *********************************************************************/
+void read_voltage() {
+  double results, adc0;
+  double volts0;
+  results = 0;
+  for (int i = 1; i <= 5; i++) {
+    adc0 = ads1115.readADC_SingleEnded(0);
+    adc0 = adc0 * 0.0009926;
+    adc0 = adc0 - 7.369;
+    results = results + adc0;
+  }
+  results = results / 5;
+  voltage = results;
+  Serial.print("Differential: "); Serial.print(adc0); Serial.print("("); Serial.print(results); Serial.print("mV) "); Serial.print("V: "); Serial.println(voltage);
+}
+
 void check_state() {
 
   /* ##############################
       tension
-    ###############################*/
-  // simulate Voltage
-  double factor = random(0, 100); // create random number
-  tension_lost = tension_lost + (factor / 500);
-  voltage = 15 -  tension_lost;
-  // end simulate
+    ###############################
+    // simulate Voltage
+    double factor = random(0, 100); // create random number
+    tension_lost = tension_lost + (factor / 500);
+    voltage = 15 -  tension_lost;
+    // end simulate
+  */
 
+  read_voltage();
   if (voltage <= tension_limit) {
     AES = '0';
     digitalWrite(AES_Port, LOW);
