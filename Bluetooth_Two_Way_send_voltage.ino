@@ -20,9 +20,9 @@
 
 #define sent_intervall 2000 //2 sec time between sending
 
-#define AES_Port 35 
-#define Kill_Port 33
-
+#define AES_Port 19
+#define Kill_Port 32
+#define pushButton_Port 35
 #define green_LED  18
 #define red_LED  33
 #define blue_LED  23
@@ -32,16 +32,12 @@ Adafruit_ADS1115 ads1115;
 bool status;
 /*____End of definition 1Wire and A/D-Converter_____*/
 
+int buttonState = 0;         // variable for reading the pushbutton status
+
 // Parameters for Bluetooth interface and timing
-int incoming;                           // variable to store byte received from phone
+//int incoming;                           // variable to store byte received from phone
 unsigned long now;                      // variable to store current "time" using millis() function
 unsigned long last_sent;                // variable to store point in time of sending
-
-/*
-  float execution_time;
-  double minutes_left, tension_act, tension_limit;
-  unsigned long time_now, time_actual, time_last;
-*/
 
 double tension_lost = 0; //only for simulation
 
@@ -66,7 +62,7 @@ void setup() {
   last_sent = millis();
   Serial.begin(115200);
   // Setup A/D-Converter
- 
+
   Serial.println(F("ADS1115 test"));
 
   Serial.println("Getting Single-Ended reading from AIN0 (P)");
@@ -87,8 +83,6 @@ void setup() {
     Serial.println("Could not find a valid ads1115 sensor, check wiring!");
     while (1);
   }
-  read_voltage();
-
   SerialBT.begin("ESP32_Control");        // Name of your Bluetooth interface -> will show up on your phone
   pinMode(green_LED, OUTPUT);    // sets the LED pins as output
   pinMode(red_LED, OUTPUT);    // sets the LED pins as output
@@ -96,8 +90,12 @@ void setup() {
 
   pinMode(AES_Port, OUTPUT);
   pinMode(Kill_Port, OUTPUT);
+  pinMode(pushButton_Port, INPUT);
+
   digitalWrite(AES_Port, LOW);
   digitalWrite(Kill_Port, LOW);
+
+  pinMode(pushButton_Port, INPUT);
 }
 
 void time_to_go() {
@@ -113,7 +111,7 @@ void time_to_go() {
  *********************************************************************/
 void read_voltage() {
   double results, adc0;
-  double volts0;
+  //double volts0;
   results = 0;
   for (int i = 1; i <= 5; i++) {
     adc0 = ads1115.readADC_SingleEnded(0);
@@ -123,7 +121,7 @@ void read_voltage() {
   }
   results = results / 5;
   voltage = results;
-  Serial.print("Differential: "); Serial.print(adc0); Serial.print("("); Serial.print(results); Serial.print("mV) "); Serial.print("V: "); Serial.println(voltage);
+  //Serial.print("Differential: "); Serial.print(adc0); Serial.print("("); Serial.print(results); Serial.print("mV) "); Serial.print("V: "); Serial.println(voltage);
 }
 
 void check_state() {
@@ -141,8 +139,10 @@ void check_state() {
   read_voltage();
   if (voltage <= tension_limit) {
     AES = '0';
+    Serial.print("Tension low. Tension_limit: "); Serial.print(tension_limit); Serial.print(" Voltage: "); Serial.println(voltage);
+    Serial.println(" ");
     digitalWrite(AES_Port, LOW);
-    digitalWrite(Kill_Port, HIGH);
+    //digitalWrite(Kill_Port, HIGH);
   }
 
   /* ##############################
@@ -151,6 +151,8 @@ void check_state() {
   time_to_go();
   if (time_left <= 0) {
     AES = '0';
+    Serial.print("Time out. Time_left: "); Serial.println(time_left);
+    Serial.println(" ");
     digitalWrite(AES_Port, LOW);
     digitalWrite(Kill_Port, HIGH);
   }
@@ -172,6 +174,7 @@ void set_LED_colour(char LED_Colour) {
       digitalWrite(blue_LED, LOW);
       break;
     case 'r':
+      Serial.println("LED rot");
       digitalWrite(green_LED, LOW);
       digitalWrite(red_LED, HIGH);
       digitalWrite(blue_LED, LOW);
@@ -212,7 +215,7 @@ void send_BT() {
     check_state();
     read_status();
     SerialBT.println(sent_char);
-    set_LED_colour ('b');
+    //set_LED_colour ('b');
     delay(500);
     Serial.print("Volt: "); Serial.println(sent_char);
     last_sent = millis();
@@ -242,6 +245,7 @@ void receive_BT() {
           start_time = now / 60000;
           AES = '1';
           digitalWrite(AES_Port, HIGH);
+          Serial.println("Start tension.");
           break;
         case 'M':                        // Minutes left
           state.remove(0, 1);
@@ -250,6 +254,7 @@ void receive_BT() {
           start_time = now / 60000;
           AES = '1';
           digitalWrite(AES_Port, HIGH);
+          Serial.println("Start time.");
           break;
         case 'A':                        // AES state
           state.remove(0, 1);
@@ -266,6 +271,15 @@ void receive_BT() {
   }
 }
 void loop() {
+  buttonState = digitalRead(pushButton_Port);
+  if (buttonState == HIGH) {
+    AES = '1';
+    Serial.println("AES: on");
+    digitalWrite(AES_Port, HIGH);
+    Serial.println("Start AES");
+    set_LED_colour ('r');
+    delay(500);
+  }
   now = millis();                       // Store current time
   set_LED_colour('g');
   receive_BT();
