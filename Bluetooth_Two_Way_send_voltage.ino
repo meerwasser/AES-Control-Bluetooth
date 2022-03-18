@@ -20,7 +20,8 @@ bool status;
 /*____End of definition 1Wire and A/D-Converter_____*/
 
 int buttonState = 0;         // variable for reading the pushbutton status
-int simulate = 1;         // if simulate = 1, sketch runs without other hardware
+int simulate = 0;         // if simulate = 1, sketch runs without other hardware
+int AES_triggered = 0; //switch was trigerred
 
 // Parameters for Bluetooth interface and timing
 //int incoming;                           // variable to store byte received from phone
@@ -51,7 +52,7 @@ void setup() {
   if (simulate == 0) {
     start_analog_digital_converter();
   }
-  SerialBT.begin("ESP32_Control");        // Name of your Bluetooth interface -> will show up on your phone
+  SerialBT.begin("AES_Contr_ESP");        // Name of your Bluetooth interface -> will show up on your phone
   pinMode(green_LED, OUTPUT);    // sets the LED pins as output
   pinMode(red_LED, OUTPUT);    // sets the LED pins as output
   pinMode(blue_LED, OUTPUT);    // sets the LED pins as outputgreen_LED
@@ -125,10 +126,13 @@ void check_state() {
     AES = '0';
     Serial.print("Tension low. Tension_limit: "); Serial.print(tension_limit); Serial.print(" Voltage: "); Serial.println(voltage);
     Serial.println(" ");
-    power_control('r'); //r: ready, a: AES, o: off
+    if (AES_triggered == 0) {
+      power_control('o'); //r: ready, a: AES, o: off
+    }
     set_LED_colour ('g');
-
+    AES_triggered = 1;
   }
+
 
   /* ##############################
       time
@@ -138,8 +142,11 @@ void check_state() {
     AES = '0';
     Serial.print("Time out. Time_left: "); Serial.println(time_left);
     Serial.println(" ");
-    power_control('r'); //r: ready, a: AES, o: off
+    if (AES_triggered == 0) {
+      power_control('o'); //r: ready, a: AES, o: off
+    }
     set_LED_colour ('g');
+    AES_triggered = 1;
   }
 }
 
@@ -269,6 +276,7 @@ void receive_BT() {
           power_control('a'); //r: ready, a: AES, o: off
           Serial.println("Start tension.");
           set_LED_colour ('b');
+          AES_triggered = 0;
           break;
         case 'M':                        // Minutes left
           state.remove(0, 1);
@@ -279,11 +287,13 @@ void receive_BT() {
           power_control('a'); //r: ready, a: AES, o: off
           Serial.println("Start time.");
           set_LED_colour ('b');
+          AES_triggered = 0;
           break;
         case 'A':                        // AES state
           state.remove(0, 1);
           Serial.print("AES: "); Serial.println(state);
           AES = state;
+          AES_triggered = 0;
           break;
         default:
           // statements
@@ -297,13 +307,18 @@ void receive_BT() {
 
 void standalone_op() {
   AES = '1';
+  start_time = now / 60000;
   tension_limit = 12.9;
   minutes_runtime = 240;
   power_control('a'); //r: ready, a: AES, o: off
   set_LED_colour ('r');
+  AES_triggered = 0;
 }
 
 void loop() {
+  if (AES_triggered == 1) {
+    power_control('o');
+  }
   buttonState = digitalRead(pushButton_Port);
   if (buttonState == HIGH) {
     standalone_op();
