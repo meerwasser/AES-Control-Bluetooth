@@ -112,41 +112,37 @@ void read_voltage() {
   //Serial.print("Differential: "); Serial.print(adc0); Serial.print("("); Serial.print(results); Serial.print("mV) "); Serial.print("V: "); Serial.println(voltage);
 }
 
-void check_state() {
-  if (simulate == 1) {
-    // simulate Voltage
-    double factor = random(0, 100); // create random number
-    tension_lost = tension_lost + (factor / 1000);
-    voltage = 15 -  tension_lost;
-    // end simulate
-  } else {
-    read_voltage();
-  }
-  if (voltage <= tension_limit) {
-    AES = '0';
-    Serial.print("Tension low. Tension_limit: "); Serial.print(tension_limit); Serial.print(" Voltage: "); Serial.println(voltage);
-    Serial.println(" ");
-    if (AES_triggered == 0) {
-      power_control('o'); //r: ready, a: AES, o: off
-    }
-    set_LED_colour ('g');
-    AES_triggered = 1;
-  }
+/*###########################################
+   Power-status
+   r: ready (Power on, AES off)
+   a: AES    (Power on, AES on
+   o: off    (Power off, AES off)
+  ############################################*/
 
-
-  /* ##############################
-      time
-    ###############################*/
-  time_to_go();
-  if (time_left <= 0) {
-    AES = '0';
-    Serial.print("Time out. Time_left: "); Serial.println(time_left);
-    Serial.println(" ");
-    if (AES_triggered == 0) {
-      power_control('o'); //r: ready, a: AES, o: off
-    }
-    set_LED_colour ('g');
-    AES_triggered = 1;
+void power_control(char power) {
+  switch (power) {
+    case 'r':
+      Serial.println(" ");
+      Serial.println("Power ready: Power on, AES off");
+      digitalWrite(AES_Port, LOW);
+      digitalWrite(Kill_Port, LOW);
+      break;
+    case 'a':
+      set_LED_colour ('r');
+      Serial.println(" ");
+      Serial.println("Power AES: Power on, AES on");
+      digitalWrite(AES_Port, HIGH);
+      digitalWrite(Kill_Port, LOW);
+      break;
+    case 'o':
+      Serial.println(" ");
+      Serial.println("Power off: Power off, AES off");
+      digitalWrite(AES_Port, LOW);
+      digitalWrite(Kill_Port, HIGH);
+      break;
+    default:
+      // statements
+      break;
   }
 }
 
@@ -187,37 +183,47 @@ void set_LED_colour(char LED_Colour) {
   }
 }
 
-/*###########################################
-   Power-status
-   r: ready (Power on, AES off)
-   a: AES    (Power on, AES on
-   o: off    (Power off, AES off)
-  ############################################*/
-
-void power_control(char power) {
-  switch (power) {
-    case 'r':
-      Serial.println(" ");
-      Serial.println("Power ready: Power on, AES off");
-      digitalWrite(AES_Port, LOW);
-      digitalWrite(Kill_Port, LOW);
-      break;
-    case 'a':
+void check_state() {
+  if (simulate == 1) {
+    // simulate Voltage
+    double factor = random(0, 100); // create random number
+    tension_lost = tension_lost + (factor / 1000);
+    voltage = 15 -  tension_lost;
+    // end simulate
+  } else {
+    read_voltage();
+  }
+  if (voltage <= tension_limit) {
+    AES = '0';
+    Serial.print("Tension low. Tension_limit: "); Serial.print(tension_limit); Serial.print(" Voltage: "); Serial.println(voltage); Serial.println(" ");
+    if (AES_triggered == 0) {
+      power_control('o'); //r: ready, a: AES, o: off
+    }
+    set_LED_colour ('g');
+    AES_triggered = 1;
+  } else {
+    if (AES == "1") {
+      power_control('a'); //r: ready, a: AES, o: off
       set_LED_colour ('r');
-      Serial.println(" ");
-      Serial.println("Power AES: Power on, AES on");
-      digitalWrite(AES_Port, HIGH);
-      digitalWrite(Kill_Port, LOW);
-      break;
-    case 'o':
-      Serial.println(" ");
-      Serial.println("Power off: Power off, AES off");
-      digitalWrite(AES_Port, LOW);
-      digitalWrite(Kill_Port, HIGH);
-      break;
-    default:
-      // statements
-      break;
+    }
+  }
+  /* ##############################
+      time
+    ###############################*/
+  time_to_go();
+  if (time_left <= 0) {
+    AES = '0';
+    Serial.print("Time out. Time_left: "); Serial.println(time_left); Serial.println(" ");
+    if (AES_triggered == 0) {
+      power_control('o'); //r: ready, a: AES, o: off
+    }
+    set_LED_colour ('g');
+    AES_triggered = 1;
+  } else {
+    if (AES == "1") {
+      power_control('a'); //r: ready, a: AES, o: off
+      set_LED_colour ('r');
+    }
   }
 }
 
@@ -236,22 +242,19 @@ void read_status () {
 
 void send_BT() {
   now = millis();                       // Store current time
-
   if (now > (last_sent + sent_intervall)) {
-    check_state();
     read_status();
     SerialBT.println(sent_char);
     //set_LED_colour ('b');
     Serial.print("Volt: "); Serial.println(sent_char);
     last_sent = millis();
-
   }
 }
 
 void receive_BT() {
   char label = ' ';
   double tens_temp = 11.5;
-
+ Serial.print("Bluetooth received!");
   if (SerialBT.available()) {
     state = "";
     while (SerialBT.available()) {
@@ -316,9 +319,13 @@ void standalone_op() {
 }
 
 void loop() {
+  check_state();
+
   if (AES_triggered == 1) {
     power_control('o');
+    delay(1000);
   }
+
   buttonState = digitalRead(pushButton_Port);
   if (buttonState == HIGH) {
     standalone_op();
