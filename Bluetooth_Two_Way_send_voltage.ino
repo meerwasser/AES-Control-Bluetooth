@@ -112,8 +112,8 @@ void read_voltage() {
   results = 0;
   for (int i = 1; i <= 5; i++) {
     adc0 = ads1115.readADC_SingleEnded(0);
-    adc0 = adc0 * 0.0009926;
-    adc0 = adc0 - 7.369;
+    adc0 = adc0 * 0.000715;
+    adc0 = adc0 + 0.07388;
     results = results + adc0;
   }
   results = results / 5;
@@ -166,7 +166,7 @@ void power_control(char power) {
       digitalWrite(red_LED, HIGH);
       digitalWrite(blue_LED, LOW);
       digitalWrite(AES_Port, HIGH);
-      digitalWrite(Kill_Port, HIGH);
+      digitalWrite(Kill_Port, LOW);
       delay(1000);
       Serial.println("Delay off");
       break;
@@ -299,6 +299,7 @@ void loop() {
   check_state();
 
   buttonState = digitalRead(pushButton_Port);
+   Serial.print("buttonState: "); Serial.println(buttonState); 
   if (buttonState == HIGH) {
     standalone_op();
   }
