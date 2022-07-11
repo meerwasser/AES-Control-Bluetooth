@@ -183,7 +183,7 @@ void check_state() {
     // simulate Voltage
     double factor = random(0, 100); // create random number
     tension_lost = tension_lost + (factor / 1000);
-    voltage = 15 -  tension_lost;
+    voltage = 18 -  tension_lost;
     // end simulate
   } else {
     read_voltage();
