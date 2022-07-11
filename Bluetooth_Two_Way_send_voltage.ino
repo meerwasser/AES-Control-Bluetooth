@@ -20,7 +20,7 @@ bool status;
 /*____End of definition 1Wire and A/D-Converter_____*/
 
 int buttonState = 0;         // variable for reading the pushbutton status
-int simulate = 0;         // if simulate = 1, sketch runs without other hardware
+int simulate = 1;         // if simulate = 1, sketch runs without other hardware
 
 // Parameters for Bluetooth interface and timing
 //int incoming;                           // variable to store byte received from phone
@@ -32,8 +32,8 @@ double tension_lost = 0; //only for simulation
 double start_time;
 double voltage;                         //actual tension
 double tension_limit = 12.9;                   //tension limit for cut-off
-double minutes_runtime = 120;                    //actual minutes set
-double time_left = 120;                     //actual runtime until cut-off
+double minutes_runtime = 240;                    //actual minutes set
+double time_left = 240;                     //actual runtime until cut-off
 double actual_minutes = 0;                     //actual runtime in minutes
 String AES = "0";
 String make_string;
