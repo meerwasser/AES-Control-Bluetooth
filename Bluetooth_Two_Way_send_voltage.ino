@@ -20,7 +20,7 @@ bool status;
 /*____End of definition 1Wire and A/D-Converter_____*/
 
 int buttonState = 0;         // variable for reading the pushbutton status
-int simulate = 1;         // if simulate = 1, sketch runs without other hardware
+int simulate = 0;         // if simulate = 1, sketch runs without other hardware
 
 // Parameters for Bluetooth interface and timing
 //int incoming;                           // variable to store byte received from phone
