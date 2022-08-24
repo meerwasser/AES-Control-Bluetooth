@@ -3,10 +3,58 @@
 #include "BluetoothSerial.h"
 #include <Wire.h>
 #include <Adafruit_ADS1X15.h>
+#include "BLEDevice.h"
 /*______End of Libraries_______*/
 
-#define sent_intervall 1000 //2 sec time between sending
 
+#define HM_MAC "60:A4:23:91:94:42"  // Adresse über nRF Connect App finden !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!B O N D I N G nicht vergessen!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+uint32_t PIN = 173928 ;             // Bonding Passwort
+
+// Service und Characteristic des Votronic Bluetooth Connectors
+static BLEUUID Votronic_serviceUUID("d0cb6aa7-8548-46d0-99f8-2d02611e5270");
+static BLEUUID Batteriecomputer_charUUID("9a082a4e-5bcc-4b1d-9958-a97cfccfa5ec");
+static BLEUUID Solarregler_charUUID("971ccec2-521d-42fd-b570-cf46fe5ceb65");
+
+//Variablen, die immer über die Callbacks aktualisiert werden
+//Wert bleibt im Sleep-Modus erhalten
+RTC_DATA_ATTR float Spannung_Aufbaubatterie, Strom_BC, Strom_SR, Spannung_Starterbatterie;
+RTC_DATA_ATTR int16_t Batterieladungsstatus, Ladung_SR_Wh, Ladung_SR_Ah;
+RTC_DATA_ATTR String Solarstatus;
+
+static BLEAddress *pServerAddress;
+static BLERemoteCharacteristic* pRemoteCharacteristic_BC;
+static BLERemoteCharacteristic* pRemoteCharacteristic_SR;
+BLEClient*  pClient;
+
+class MySecurity : public BLESecurityCallbacks {
+    bool onConfirmPIN(uint32_t pin) {
+      return false;
+    }
+    uint32_t onPassKeyRequest() {
+      ESP_LOGI(LOG_TAG, "PassKeyRequest");
+      //delay(1000);
+      return PIN;
+    }
+    void onPassKeyNotify(uint32_t pass_key) {
+      ESP_LOGI(LOG_TAG, "On passkey Notify number:%d", pass_key);
+    }
+    bool onSecurityRequest() {
+      ESP_LOGI(LOG_TAG, "On Security Request");
+      return true;
+    }
+    void onAuthenticationComplete(esp_ble_auth_cmpl_t cmpl) {
+      ESP_LOGI(LOG_TAG, "Starting BLE work!");
+      if (cmpl.success) {
+        uint16_t length;
+        esp_ble_gap_get_whitelist_size(&length);
+        ESP_LOGD(LOG_TAG, "size: %d", length);
+      }
+    }
+};
+
+
+
+#define sent_intervall 1000 //2 sec time between sending
 #define AES_Port 19
 #define Kill_Port 32
 #define pushButton_Port 35
@@ -58,6 +106,9 @@ void setup() {
   delay(500);
   digitalWrite(Kill_Port, LOW);
 
+  Serial.println("Read Votronic BLE Connector");
+  Setup_Votronic();
+
   last_sent = millis();
   Serial.begin(115200);
   digitalWrite(green_LED, HIGH);
@@ -72,6 +123,112 @@ void setup() {
   digitalWrite(red_LED, LOW);
   digitalWrite(blue_LED, LOW);
   power_control('r'); //r: ready, a: AES, o: off
+}
+
+// Batteriecomputer Callback
+static void Batteriecomputer_Callback (BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
+  int16_t iStrom;
+  Spannung_Aufbaubatterie = float(pData[1] << 8 | pData[0]) / 100;
+  Spannung_Starterbatterie = float(pData[3] << 8 | pData[2]) / 100;
+  iStrom = pData[11] << 8 | pData[10];
+  Strom_BC = float(iStrom) / 1000;
+  Batterieladungsstatus = pData[8];
+  Serial.print("Batterieladungsstatus: ");
+  Serial.print(Batterieladungsstatus);
+  Serial.print("          Stromfluss: ");
+  Serial.print(Strom_BC);
+  Serial.print("      Spannung_Aufbaubatterie: ");
+  Serial.println(Spannung_Aufbaubatterie);
+}
+
+// Solarregler Callback
+static void Solarregler_Callback (BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
+  Strom_SR = float(pData[5] << 8 | pData[4]) / 10; ;
+  if (pData[12] == 9) {
+    Solarstatus = "Aktiv";
+  }
+  else if (pData[12] == 25) {
+    Solarstatus = "Stromreduzierung";
+  }
+  else {
+    Solarstatus = String(pData[12]);
+  }
+  Ladung_SR_Wh = (pData[16] << 8 | pData[15]) * 10;
+  Ladung_SR_Ah = (pData[14] << 8 | pData[13]);
+  Serial.print("Solarstrom: ");
+  Serial.print(Strom_SR);
+  Serial.print("  |  ");
+  Serial.print("Solarstatus: ");
+  Serial.print(Solarstatus);
+  Serial.print("  |  ");
+  Serial.print("Ladung Wh: ");
+  Serial.print(Ladung_SR_Wh);
+  Serial.print("  |  ");
+  Serial.print("Ladung Ah: ");
+  Serial.println(Ladung_SR_Ah);
+}
+
+// Verbinde mit Votronic BLE Server.
+bool connectToServer(BLEAddress pAddress)
+{
+  Serial.print("Verbinde mit ");
+  Serial.println(pAddress.toString().c_str());
+
+  //BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT );
+  BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT );
+  BLEDevice::setSecurityCallbacks(new MySecurity());
+
+  BLESecurity *pSecurity = new BLESecurity();
+  pSecurity->setAuthenticationMode(ESP_LE_AUTH_REQ_SC_BOND); //
+  pSecurity->setCapability(ESP_IO_CAP_OUT);
+  pSecurity->setRespEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
+  pClient = BLEDevice::createClient();
+
+  if ( pClient->connect(pAddress) ) {
+    Serial.println("BLE Verbunden");
+    BLERemoteService* pRemoteService = pClient->getService(Votronic_serviceUUID);
+    if (pRemoteService == nullptr)
+    {
+      Serial.print("Service UUID nicht gefunden: ");
+      Serial.println(Votronic_serviceUUID.toString().c_str());
+      return false;
+    }
+    //Callback für Batteriecomputer
+    pRemoteCharacteristic_BC = pRemoteService->getCharacteristic(Batteriecomputer_charUUID);
+    if (pRemoteCharacteristic_BC == nullptr) {
+      Serial.print("Characteristic UUID nicht gefunden: ");
+      Serial.println(Batteriecomputer_charUUID.toString().c_str());
+      return false;
+    }
+    pRemoteCharacteristic_BC->registerForNotify(Batteriecomputer_Callback);
+    Serial.println("Callback Batteriecomputer_Callback");
+    Batteriecomputer_Callback;
+    Serial.print("Batterieladungsstatus: ");  Serial.println(Batterieladungsstatus);
+    //Callback für Solarregler
+    pRemoteCharacteristic_SR = pRemoteService->getCharacteristic(Solarregler_charUUID);
+    if (pRemoteCharacteristic_SR == nullptr) {
+      Serial.print("Characteristic UUID nicht gefunden: ");
+      Serial.println(Batteriecomputer_charUUID.toString().c_str());
+      return false;
+    }
+
+    pRemoteCharacteristic_SR->registerForNotify(Solarregler_Callback);
+    Serial.println("Callback Solarregler_Callback");
+  }
+  else {
+    Serial.println("BLE nicht Verbunden");
+  }
+  return true;
+}
+
+//BLE Connection und Listener auf Werte des Batteriecomputers und Solarreglers
+void Setup_Votronic() {
+  bool connect_to = false;
+  while (connect_to == false) {
+    BLEDevice::init("");
+    pServerAddress = new BLEAddress(HM_MAC);
+    connectToServer(*pServerAddress);
+  }
 }
 
 void start_analog_digital_converter() {
@@ -299,7 +456,7 @@ void loop() {
   check_state();
 
   buttonState = digitalRead(pushButton_Port);
-   Serial.print("buttonState: "); Serial.println(buttonState); 
+  Serial.print("buttonState: "); Serial.println(buttonState);
   if (buttonState == HIGH) {
     standalone_op();
   }
